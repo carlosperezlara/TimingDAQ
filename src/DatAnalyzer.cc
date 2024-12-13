@@ -159,7 +159,8 @@ void DatAnalyzer::Analyze(){
     vector<pair<int, int>> poly_bounds;
     float Re_b, Re_slope;
     bool fittable = true;
-    fittable *= idx_min < (int)(NUM_SAMPLES*0.8);
+    //fittable *= idx_min < (int)(NUM_SAMPLES*0.8);
+    fittable *= idx_min < (int)(NUM_SAMPLES*0.9);
     fittable *= fabs(amp) > 8 * baseline_RMS;
     fittable *= fabs(channel[i][idx_min+1]) > 4*baseline_RMS;
     fittable *= fabs(channel[i][idx_min-1]) > 4*baseline_RMS;
@@ -173,25 +174,25 @@ void DatAnalyzer::Analyze(){
     //No sure this is a good idea (CP)
     //-------------------------------------------------------------
     if( fittable  && !config->channels[i].algorithm.Contains("None")) {
-    if( var["amp"][i] < 0 && config->channels[i].counter_auto_pol_switch > 0 ) {
-      config->channels[i].polarity *= -1;
-      amp = -amp;
-      var["amp"][i] = -var["amp"][i];
-      scale_factor = -scale_factor;
-      var["baseline"][i] = -var["baseline"][i];
-      for(unsigned int j=0; j<NUM_SAMPLES; j++) {
-	       channel[i][j] = -channel[i][j];
+      if( var["amp"][i] < 0 && config->channels[i].counter_auto_pol_switch > 0 ) {
+	config->channels[i].polarity *= -1;
+	amp = -amp;
+	var["amp"][i] = -var["amp"][i];
+	scale_factor = -scale_factor;
+	var["baseline"][i] = -var["baseline"][i];
+	for(unsigned int j=0; j<NUM_SAMPLES; j++) {
+	  channel[i][j] = -channel[i][j];
+	}
+	delete pulse;
+	pulse = new TGraphErrors(NUM_SAMPLES, time[GetTimeIndex(i)], channel[i], 0, yerr);
+	pulse->SetNameTitle("g_"+name, "g_"+name);
+	
+	if ( config->channels[i].counter_auto_pol_switch == 10 ) {
+	  cout << "[WARNING] Channel " << i << ": automatic polarity switched more than 10 times" << endl;
+	  cout << "[WARNING] Channel " << i << ": gonna keep inverting it for you. Better check your pulse polarity!!" << endl;
+	}
+	config->channels[i].counter_auto_pol_switch ++;
       }
-      delete pulse;
-      pulse = new TGraphErrors(NUM_SAMPLES, time[GetTimeIndex(i)], channel[i], 0, yerr);
-      pulse->SetNameTitle("g_"+name, "g_"+name);
-
-      if ( config->channels[i].counter_auto_pol_switch == 10 ) {
-	       cout << "[WARNING] Channel " << i << ": automatic polarity switched more than 10 times" << endl;
-	       cout << "[WARNING] Channel " << i << ": gonna keep inverting it for you. Better check your pulse polarity!!" << endl;
-      }
-      config->channels[i].counter_auto_pol_switch ++;
-    }
     
     // if( fittable  && !config->channels[i].algorithm.Contains("None")) {
       /************************************
